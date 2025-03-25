@@ -50,7 +50,7 @@ import Summoner.Config (Config, ConfigP (..), PartialConfig, defaultConfig, fina
                         guessConfigFromGit, loadFileConfig)
 import Summoner.CustomPrelude (CustomPrelude (..))
 import Summoner.Decision (Decision (..))
-import Summoner.Default (currentYear, defaultConfigFile, defaultConfigFileContent, defaultGHC)
+import Summoner.Default (currentYear, defaultConfigFile, defaultConfigFileContent, defaultGHC, currentXdgConfigFile)
 import Summoner.GhcVer (GhcVer, ghcTable, parseGhcVer)
 import Summoner.License (License (..), LicenseName (..), fetchLicenseCustom, parseLicenseName,
                          showLicenseWithDesc)
@@ -225,26 +225,56 @@ getFinalConfig NewOpts{..} = do
         Success c    -> pure c
         Failure msgs -> for_ msgs errorMessage >> exitFailure
 
+-- | The result of searching for a config file to use.
+-- Intended to only be used internally with 'readFileConfig'.
+data ConfigFilePath
+    -- | Found a file (once found, we don't care where it came from).
+    = Exists FilePath
+    -- | No config file was specified, and the defaults did not exist.
+    | DefaultsMissing
+    -- | The specified file path did not exist.
+    | SpecifiedMissing FilePath
+
 -- | Reads and parses the given config file. If no file is provided the default
 -- configuration returned.
 readFileConfig :: Bool -> Maybe FilePath -> IO PartialConfig
 readFileConfig ignoreFile maybeFile = if ignoreFile then pure mempty else do
-    (isDefault, file) <- case maybeFile of
-        Nothing -> (True,) <$> defaultConfigFile
-        Just x  -> pure (False, x)
+    -- (_, Just filepath) if the file exists, (_, Nothing) otherwise
+    cfgPath :: ConfigFilePath <- case maybeFile of
+        Nothing -> maybe DefaultsMissing Exists <$> findDefaultConfigFile
+        Just x  -> (\exists -> if exists then Exists x else SpecifiedMissing x) <$> doesFileExist x
 
-    isFile <- doesFileExist file
+    case cfgPath of
+        Exists file -> do
+            infoMessage $ "Configurations from " <> toText file <> " will be used."
+            loadFileConfig file
+        SpecifiedMissing file ->  do
+            errorMessage $ "Specified configuration file " <> toText file <> " is not found."
+            exitFailure
+        DefaultsMissing -> do
+            -- gather and print the expected default files
+            defaultFilepaths <- map toText <$> sequenceA [defaultConfigFile, currentXdgConfigFile]
+            warningMessage $ unwords $ "Default config files are missing:" : defaultFilepaths
+            pure mempty
 
-    if isFile then do
-        infoMessage $ "Configurations from " <> toText file <> " will be used."
-        loadFileConfig file
-    else if isDefault then do
-        fp <- toText <$> defaultConfigFile
-        warningMessage $ "Default config " <> fp <> " file is missing."
-        pure mempty
-    else do
-        errorMessage $ "Specified configuration file " <> toText file <> " is not found."
-        exitFailure
+-- | Find the first existing default config file:
+-- 1. @$HOME/.summoner.toml@ (kept first to preserve legacy default)
+-- 2. @$XDG_CONFIG_HOME/summoner.toml@ (defaults to @$HOME/.config/summoner.toml@)
+findDefaultConfigFile :: IO (Maybe FilePath)
+findDefaultConfigFile = do
+    -- Don't execute IO actions until we actually need to
+    let homeFile = defaultConfigFile
+    let xdgConfigFile = currentXdgConfigFile
+    -- Now we can execute them within 'exists'
+    let exists file = runMaybeT $ do
+            fileExists <- liftIO (file >>= doesFileExist)
+            MaybeT $ if fileExists then fmap Just file else pure Nothing
+
+    maybeHomeFile <- exists homeFile
+    case maybeHomeFile of
+        Just file -> pure $ pure file
+        Nothing -> exists xdgConfigFile
+
 
 ----------------------------------------------------------------------------
 -- Command data types
