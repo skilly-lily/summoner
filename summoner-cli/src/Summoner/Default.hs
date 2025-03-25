@@ -21,6 +21,7 @@ module Summoner.Default
        , defaultTomlFile
        , defaultConfigFile
        , defaultConfigFileContent
+       , currentXdgConfigFile
        , defaultDescription
        , currentYear
 
@@ -74,6 +75,17 @@ defaultTomlFile = ".summoner.toml"
 
 defaultConfigFile :: IO FilePath
 defaultConfigFile = (</> defaultTomlFile) <$> getHomeDirectory
+
+defaultXdgConfigPath :: IO FilePath
+defaultXdgConfigPath = (</> ".config") <$> getHomeDirectory
+
+defaultXdgConfigFileName :: FilePath
+defaultXdgConfigFileName = "summoner.toml"
+
+currentXdgConfigFile :: IO FilePath
+currentXdgConfigFile = do
+  configPath <- lookupEnv "XDG_CONFIG_HOME" >>= maybe defaultXdgConfigPath pure 
+  pure (configPath  </> defaultXdgConfigFileName)
 
 defaultDescription :: Text
 defaultDescription = "See README for more info"
