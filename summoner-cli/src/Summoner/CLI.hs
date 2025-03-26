@@ -183,7 +183,8 @@ runScript ScriptOpts{..} = do
     let script = scriptFile scriptOptsGhc scriptOptsTool
     writeFileText scriptOptsName script
     unless (os == "mingw32") $
-        "chmod" ["+x", pathTxt]
+        -- type checker warns about IsString ambiguity if we don't specify
+        ("chmod" :: [Text] -> IO ()) ["+x", pathTxt]
     successMessage $ "Successfully created script: " <> pathTxt
 
 {- | Runs @new@ command.
