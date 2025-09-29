@@ -25,15 +25,17 @@ tested-with:         GHC == 8.0.2
                      GHC == 9.0.2
                      GHC == 9.2.8
                      GHC == 9.4.8
-                     GHC == 9.6.6
-                     GHC == 9.8.2
+                     GHC == 9.6.7
+                     GHC == 9.8.4
+                     GHC == 9.10.3
+                     GHC == 9.12.2
 
 source-repository head
   type:                git
   location:            https://github.com/kowainik/full-batteries.git
 
 common common-options
-  build-depends:       base >= 4.9.1.0 && < 4.20
+  build-depends:       base >= 4.9.1.0 && < 4.22
                      , relude
 
   mixins:              base hiding (Prelude)
@@ -42,7 +44,12 @@ common common-options
   ghc-options:         -Wcompat
                        -Widentities
 
-  default-language:    Haskell2010
+  if impl(ghc < 9.2)
+    default-language:    Haskell2010
+  if impl(ghc >= 9.2 && < 9.10)
+    default-language:    GHC2021
+  if impl(ghc >= 9.10)
+    default-language:    GHC2024
   default-extensions:  ConstraintKinds
                        LambdaCase
                        OverloadedStrings

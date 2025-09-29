@@ -112,7 +112,12 @@ cabalFile Settings{..} = File (toString settingsRepo ++ ".cabal") cabalFileConte
         <> ghcOptions
         <>
         ( ""
-        : "  default-language:    Haskell2010"
+        : "  if impl(ghc < 9.2)"
+        : "    default-language:    Haskell2010"
+        : "  if impl(ghc >= 9.2 && < 9.10)"
+        : "    default-language:    GHC2021"
+        : "  if impl(ghc >= 9.10)"
+        : "    default-language:    GHC2024"
         : defaultExtensions
         )
 
@@ -156,6 +161,8 @@ cabalFile Settings{..} = File (toString settingsRepo ++ ".cabal") cabalFileConte
         , "  if impl(ghc >= 9.8)"
         , "    ghc-options:       -Wterm-variable-capture"
         , "                       -Winconsistent-flags"
+        , "  if impl(ghc >= 9.10)"
+        , "    ghc-options:       -Wincomplete-record-selectors"
         ]
 
     libraryStanza :: Text
