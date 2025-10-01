@@ -21,6 +21,8 @@ module Summoner.Default
        , defaultTomlFile
        , defaultConfigFile
        , defaultConfigFileContent
+       , defaultXDGTomlFile
+       , defaultXDGConfigFile
        , defaultDescription
        , currentYear
 
@@ -34,6 +36,7 @@ import Relude.Extra.Enum (prev)
 
 import Data.Time (getCurrentTime, getCurrentTimeZone, localDay, toGregorian, utcToLocalTime)
 import System.Directory (getHomeDirectory)
+import System.Environment.Blank (getEnvDefault)
 import System.FilePath ((</>))
 
 import Summoner.GhcVer (GhcVer, showGhcVer)
@@ -72,9 +75,18 @@ defaultEmail = "xrom.xkov@gmail.com"
 defaultTomlFile :: FilePath
 defaultTomlFile = ".summoner.toml"
 
+defaultXDGTomlFile :: FilePath
+defaultXDGTomlFile = "summoner.toml"
+
 defaultConfigFile :: IO FilePath
 defaultConfigFile = (</> defaultTomlFile) <$> getHomeDirectory
 
+defaultXDGConfigPath :: IO FilePath
+defaultXDGConfigPath = (</> ".config") <$> getHomeDirectory
+
+defaultXDGConfigFile :: IO FilePath
+defaultXDGConfigFile = (</> defaultXDGTomlFile) <$> (defaultXDGConfigPath >>= getEnvDefault "XDG_CONFIG_HOME")
+  
 defaultDescription :: Text
 defaultDescription = "See README for more info"
 

@@ -50,7 +50,7 @@ import Summoner.Config (Config, ConfigP (..), PartialConfig, defaultConfig, fina
                         guessConfigFromGit, loadFileConfig)
 import Summoner.CustomPrelude (CustomPrelude (..))
 import Summoner.Decision (Decision (..))
-import Summoner.Default (currentYear, defaultConfigFile, defaultConfigFileContent, defaultGHC)
+import Summoner.Default (currentYear, defaultConfigFile, defaultConfigFileContent, defaultGHC, defaultXDGConfigFile)
 import Summoner.GhcVer (GhcVer, ghcTable, parseGhcVer)
 import Summoner.License (License (..), LicenseName (..), fetchLicenseCustom, parseLicenseName,
                          showLicenseWithDesc)
@@ -230,7 +230,7 @@ getFinalConfig NewOpts{..} = do
 readFileConfig :: Bool -> Maybe FilePath -> IO PartialConfig
 readFileConfig ignoreFile maybeFile = if ignoreFile then pure mempty else do
     (isDefault, file) <- case maybeFile of
-        Nothing -> (True,) <$> defaultConfigFile
+        Nothing -> (True,) <$> defaultXDGConfigFile
         Just x  -> pure (False, x)
 
     isFile <- doesFileExist file
